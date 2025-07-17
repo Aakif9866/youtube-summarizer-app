@@ -1,32 +1,8 @@
 import streamlit as st 
 from dotenv import load_dotenv
 import google.generativeai as genai 
+from youtube_transcript_api import YouTubeTranscriptApi
 import os 
-
-from youtube_transcript_api import YouTubeTranscriptApi, _errors
-
-def extract_transcript_details(youtube_video_url):
-    try:
-        video_id = youtube_video_url.split("v=")[-1].split("&")[0]
-        
-        # Add proxy
-        proxies = {
-            "http": "http://your_proxy_ip:port",
-            "https": "http://your_proxy_ip:port"
-        }
-
-        transcript_text = YouTubeTranscriptApi.get_transcript(video_id, proxies=proxies)
-
-        transcript = " ".join([i["text"] for i in transcript_text])
-        return transcript
-
-    except _errors.RequestBlocked:
-        return "❌ YouTube blocked the request. Use a proxy or run locally."
-    except _errors.TranscriptsDisabled:
-        return "❌ Transcripts are disabled for this video."
-    except Exception as e:
-        return f"❌ Error: {e}"
-
 
 load_dotenv()  # this will load all the variables
 
@@ -36,6 +12,20 @@ prompt = """You are YouTube video summarizer. You will be taking the transcript 
 and summarizing the entire video and providing the important summary in points
 within 250 words. Please provide the summary of the text given here:  """
 
+# Getting the transcript data from YouTube video
+def extract_transcript_details(youtube_video_url):
+    try:
+        video_id = youtube_video_url.split("=")[1]
+        transcript_text = YouTubeTranscriptApi.get_transcript(video_id)
+
+        transcript = ""
+        for i in transcript_text:
+            transcript += " " + i["text"]
+
+        return transcript
+
+    except Exception as e:
+        raise e
 
 # Getting the summary from Gemini Pro
 def generate_gemini_content(transcript_text, prompt):
